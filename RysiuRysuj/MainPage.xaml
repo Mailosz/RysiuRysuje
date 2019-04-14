@@ -1,0 +1,33 @@
+﻿<Page
+    x:Class="RysiuRysuj.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:RysiuRysuj"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" PointerPressed="ViewBox_PointerPressed" PointerMoved="ViewBox_PointerMoved"/>
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ListBox x:Name="historyList" VerticalAlignment="Bottom">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="local:UserCommand">
+                            <TextBlock Text="{x:Bind}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBox x:Name="inputBox" Grid.Row="1" AcceptsReturn="True" PlaceholderText="Wpisz tu coś..." PreviewKeyDown="InputBox_KeyDown" BorderThickness="0"/>
+        </Grid>
+    </Grid>
+</Page>
