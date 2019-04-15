@@ -1,4 +1,5 @@
-﻿using Microsoft.Graphics.Canvas.Geometry;
+﻿using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.UI;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using System;
@@ -35,10 +36,14 @@ namespace RysiuRysuj
         float zoom = 1;
         bool pressed = false;
 
+        Plane plane = new Plane();
+
         Vector2 lastPoint;
         public MainPage()
         {
             this.InitializeComponent();
+
+            plane.MainActor = new Actor();
         }
 
         private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -50,6 +55,8 @@ namespace RysiuRysuj
                     inputBox.Text = "";
                     historyList.Items.Add(command);
                     historyList.ScrollIntoView(command);
+                    plane.Commands.Add(command);
+                    PathChanged();
                 }
                 else
                 {
@@ -59,10 +66,79 @@ namespace RysiuRysuj
             }
         }
 
+        private void PathChanged()
+        {
+            CanvasPathBuilder cpb = new CanvasPathBuilder(viewBox);
+            float dir = plane.StartDir;
+            Vector2 pos = plane.StartPoint;
+            Vector2 tangent;
+            cpb.BeginFigure(pos);
+            foreach (var command in plane.Commands)
+            {
+                command.AppendPath(cpb, ref dir, ref pos);
+            }
+            cpb.EndFigure(CanvasFigureLoop.Open);
+            plane.PathGeometry = CanvasGeometry.CreatePath(cpb);
+            plane.MainActor.PathGeometry = plane.PathGeometry;
+            plane.MainActor.PathLength = plane.PathGeometry.ComputePathLength();
+            plane.MainActor.EndDir = dir;
+        }
+
         public bool ParseCommand(string text, out UserCommand? command)
         {
-            command = new UserCommand(text);
-            return true; 
+            text = text.Trim();
+            
+            int pos = 0;
+            string token;
+                         
+            if (TryGetToken(text, ref pos, (c) => !char.IsLetter(c), out token))
+            {
+                double arg1 = 0;
+                switch (token.ToUpperInvariant())
+                {
+                    case "MF":
+                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                        {
+
+                        }
+                        command = new MoveForward(arg1);
+                        return true;
+                    case "RT":
+                        if (TryGetToken(text, ref pos, (c) => c != '-' && !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                        {
+
+                        }
+                        command = new RotateCommand(arg1);
+                        return true;
+                }
+            }
+
+            command = null;
+            return false; 
+        }
+
+        bool TryGetToken(string text, ref int pos, Func<char, bool> until, out string token)
+        {
+            for (int i = pos; i < text.Length; i++)
+            {
+                if (until(text[i]))
+                {
+                    if (i - pos > 0)
+                    {
+                        token = text.Substring(pos, i - pos);
+                        pos += i;
+                        return true;
+                    }
+                }
+            }
+            if (pos < text.Length)
+            {
+                token = text.Substring(pos);
+                pos = text.Length;
+                return true;
+            }
+            token = null;
+            return false;
         }
 
         private void ViewBox_CreateResources(CanvasAnimatedControl sender, CanvasCreateResourcesEventArgs args)
@@ -73,13 +149,29 @@ namespace RysiuRysuj
         private void ViewBox_Update(ICanvasAnimatedControl sender, CanvasAnimatedUpdateEventArgs args)
         {
             Transform = Matrix3x2.CreateRotation((float)Math.PI, centerPoint) * Matrix3x2.CreateTranslation(scroll - centerPoint);
+
+            if (plane.MainActor != null)
+            {
+                plane.MainActor.Move();
+            }
         }
 
         private void ViewBox_Draw(ICanvasAnimatedControl sender, CanvasAnimatedDrawEventArgs args)
         {
             args.DrawingSession.Transform = Transform;
 
-            args.DrawingSession.DrawGeometry(userGeometry, Colors.Black, 2);
+            if (plane.PathGeometry != null)
+            {
+                args.DrawingSession.DrawGeometry(plane.PathGeometry, Colors.Blue, 3);
+            }
+
+            if (plane.MainActor != null)
+            {
+                args.DrawingSession.Transform = plane.MainActor.Transform * Transform;
+                args.DrawingSession.FillGeometry(userGeometry, Colors.Blue);
+                args.DrawingSession.DrawGeometry(userGeometry, Colors.Black, 2);
+            }
+
         }
 
         private void ViewBox_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -109,6 +201,11 @@ namespace RysiuRysuj
                     pressed = false;
                 }
             }
+        }
+
+        private void ViewBox_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
+        {
+            pressed = false;
         }
     }
 }

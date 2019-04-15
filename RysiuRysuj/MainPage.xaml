@@ -14,19 +14,19 @@
             <RowDefinition Height="2*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" PointerPressed="ViewBox_PointerPressed" PointerMoved="ViewBox_PointerMoved"/>
+        <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" PointerPressed="ViewBox_PointerPressed" PointerMoved="ViewBox_PointerMoved" PointerCaptureLost="ViewBox_PointerCaptureLost"/>
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <ListBox x:Name="historyList" VerticalAlignment="Bottom">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="local:UserCommand">
-                            <TextBlock Text="{x:Bind}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+            <ListView x:Name="historyList" VerticalAlignment="Bottom">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:UserCommand">
+                        <TextBlock Text="{x:Bind}"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                </ListView>
                 <TextBox x:Name="inputBox" Grid.Row="1" AcceptsReturn="True" PlaceholderText="Wpisz tu coś..." PreviewKeyDown="InputBox_KeyDown" BorderThickness="0"/>
         </Grid>
     </Grid>
