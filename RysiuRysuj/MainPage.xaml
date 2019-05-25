@@ -32,5 +32,8 @@
             </ListView>
             <TextBox x:Name="inputBox" Grid.Row="1" AcceptsReturn="True" PlaceholderText="Wpisz tu coś..." PreviewKeyDown="InputBox_KeyDown" BorderThickness="0"/>
         </Grid>
+        <Border BorderBrush="Black" HorizontalAlignment="Left" Height="59" VerticalAlignment="Top" Width="190" FocusVisualPrimaryBrush="Black" Background="{ThemeResource AppBarToggleButtonCheckedForegroundThemeBrush}"/>
+        <TextBlock x:Name="ExecutedCommandsLabel" HorizontalAlignment="Left" Margin="10,10,0,0" Text="TextBlock" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <TextBlock x:Name="LevelLabel" HorizontalAlignment="Left" Margin="10,34,0,0" Text="TextBlock" TextWrapping="Wrap" VerticalAlignment="Top"/>
     </Grid>
 </Page>

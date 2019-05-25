@@ -37,6 +37,12 @@ namespace RysiuRysuj
 
         public Matrix3x2 Transform = Matrix3x2.Identity;
 
+        public Actor(Vector2 pos)
+        {
+            Transform = Matrix3x2.CreateTranslation(pos);
+            Position = pos;
+        }
+
         public void Move()
         {
             if (PointOnPath < PathLength && PathGeometry != null)

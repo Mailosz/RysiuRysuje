@@ -20,6 +20,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Microsoft.Graphics.Canvas.Text;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -39,14 +40,21 @@ namespace RysiuRysuj
         List<Vector2> collisionPoints = new List<Vector2>();
 
         Plane plane = new Plane();
+        Random random;
+        int level = 1;
+        int executedCommandsCount = 0;
 
         Vector2 lastPoint;
         public MainPage()
         {
             this.InitializeComponent();
 
-            plane.MainActor = new Actor();
-            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(25,50), new Vector2(0, 100), new Vector2(0, 200), new Vector2(30, 100)}));
+            plane.MainActor = new Actor(new Vector2(400, 0));
+            plane.StartPoint = new Vector2(400, 0);
+            random = new Random();
+
+            GenerateLevel();
+            UpdateGUI();
         }
 
 
@@ -74,8 +82,8 @@ namespace RysiuRysuj
             historyList.ScrollIntoView(command);
             plane.Commands.Add(command);
 
-
             PathChanged();
+            UpdateGUI();
         }
 
         private void CheckCollisions(CanvasGeometry geometry)
@@ -113,7 +121,7 @@ namespace RysiuRysuj
             CheckCollisions(plane.PathGeometry);
         }
 
-        public bool ParseCommand(string text, out UserCommand? command)
+        public bool ParseCommand(string text, out UserCommand command)
         {
             text = text.Trim();
             
@@ -131,6 +139,7 @@ namespace RysiuRysuj
 
                         }
                         command = new MoveForward(arg1);
+                        executedCommandsCount++;
                         return true;
                     case "RT":
                         if (TryGetToken(text, ref pos, (c) => c != '-' && !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
@@ -138,6 +147,7 @@ namespace RysiuRysuj
 
                         }
                         command = new RotateCommand(arg1);
+                        executedCommandsCount++;
                         return true;
                 }
             }
@@ -251,6 +261,56 @@ namespace RysiuRysuj
         private void ViewBox_PointerCaptureLost(object sender, PointerRoutedEventArgs e)
         {
             pressed = false;
+        }
+
+        private void GenerateLevel()
+        {
+            plane.Obstacles.Clear();
+
+            // Generate finish
+            var points = new List<Vector2>();
+            var count = 10;
+            var radius = 15;
+            var angleStep = Math.PI * 2 / count;
+            var finishPosition = new Vector2(-400, 0);
+
+            for (int i = 0; i < 10; i++)
+            {
+                points.Add(new Vector2((float)Math.Sin(angleStep * i) * radius, (float)Math.Cos(angleStep * i) * radius) + finishPosition);
+            }
+
+            plane.Obstacles.Add(new Finish(points));
+
+            // Generate random polygons
+            for (int i = 0; i < level * 40; i++)
+            {
+                var position = Vector2.Zero;
+                while (true)
+                {
+                    position = new Vector2(random.Next(-500, 500), random.Next(-300, 300));
+                    if (Vector2.Distance(position, finishPosition) < 60 || Vector2.Distance(position, plane.StartPoint) < 60) continue;
+                    break;
+                }
+
+                var leftBottom = new Vector2(random.Next(-50, 0), random.Next(-50, 0)) + position;
+                var rightBottom = new Vector2(random.Next(0, 50), random.Next(-50, 0)) + position;
+                var rightTop = new Vector2(random.Next(0, 50), random.Next(0, 50)) + position;
+                var leftTop = new Vector2(random.Next(-50, 0), random.Next(0, 50)) + position;
+
+                plane.Obstacles.Add(new Wall(new List<Vector2>() { leftBottom, rightBottom, rightTop, leftTop }));
+            }
+
+            // Generate walls
+            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(-550, -300), new Vector2(-530, -300), new Vector2(-530, 300), new Vector2(-550, 300) }));
+            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2( 530, -300), new Vector2( 530, 300), new Vector2( 550, 300) }));
+            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2(-550, -300), new Vector2(-550,-280), new Vector2( 550, -280) }));
+            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550,  300), new Vector2(-550,  300), new Vector2(-550, 280), new Vector2( 550,  280) }));
+        }
+
+        private void UpdateGUI()
+        {
+            ExecutedCommandsLabel.Text = "Wykonanych komend: " + executedCommandsCount;
+            LevelLabel.Text = "Posiom: " + level;
         }
     }
 }
