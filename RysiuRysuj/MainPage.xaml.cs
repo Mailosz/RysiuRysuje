@@ -310,7 +310,7 @@ namespace RysiuRysuj
         private void UpdateGUI()
         {
             ExecutedCommandsLabel.Text = "Wykonanych komend: " + executedCommandsCount;
-            LevelLabel.Text = "Posiom: " + level;
+            LevelLabel.Text = "Poziom: " + level;
         }
     }
 }
