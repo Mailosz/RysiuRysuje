@@ -2,6 +2,7 @@
 using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.UI;
 using Microsoft.Graphics.Canvas.UI.Xaml;
+using RysiuRysuj.Map;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,6 +36,7 @@ namespace RysiuRysuj
         Matrix3x2 Transform;
         float zoom = 1;
         bool pressed = false;
+        List<Vector2> collisionPoints = new List<Vector2>();
 
         Plane plane = new Plane();
 
@@ -44,7 +46,9 @@ namespace RysiuRysuj
             this.InitializeComponent();
 
             plane.MainActor = new Actor();
+            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(25,50), new Vector2(0, 100), new Vector2(0, 200), new Vector2(30, 100)}));
         }
+
 
         private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
         {
@@ -53,10 +57,8 @@ namespace RysiuRysuj
                 if (ParseCommand(inputBox.Text, out UserCommand command))
                 {
                     inputBox.Text = "";
-                    historyList.Items.Add(command);
-                    historyList.ScrollIntoView(command);
-                    plane.Commands.Add(command);
-                    PathChanged();
+
+                    ChangePath(command);
                 }
                 else
                 {
@@ -64,6 +66,31 @@ namespace RysiuRysuj
                 }
                 e.Handled = true;
             }
+        }
+
+        private void ChangePath(UserCommand command)
+        {
+            historyList.Items.Add(command);
+            historyList.ScrollIntoView(command);
+            plane.Commands.Add(command);
+
+
+            PathChanged();
+        }
+
+        private void CheckCollisions(CanvasGeometry geometry)
+        {
+            geometry = geometry.Simplify(CanvasGeometrySimplification.Lines);
+
+            CollisionChecker cc = new CollisionChecker(plane.Obstacles);
+
+            List<Vector2> cp = new List<Vector2>(100);
+            cc.OnCollision += (with, p, t) =>
+            {
+                cp.Add(p);
+            };
+            geometry.SendPathTo(cc);
+            collisionPoints = cp;
         }
 
         private void PathChanged()
@@ -82,6 +109,8 @@ namespace RysiuRysuj
             plane.MainActor.PathGeometry = plane.PathGeometry;
             plane.MainActor.PathLength = plane.PathGeometry.ComputePathLength();
             plane.MainActor.EndDir = dir;
+
+            CheckCollisions(plane.PathGeometry);
         }
 
         public bool ParseCommand(string text, out UserCommand? command)
@@ -144,6 +173,11 @@ namespace RysiuRysuj
         private void ViewBox_CreateResources(CanvasAnimatedControl sender, CanvasCreateResourcesEventArgs args)
         {
             userGeometry = CanvasGeometry.CreatePolygon(sender, new[] { new Vector2(-10,-10), new Vector2(10,-10), new Vector2(0, 15), });
+
+            foreach (var obstacle in plane.Obstacles)
+            {
+                obstacle.CreateResources(sender);
+            }
         }
 
         private void ViewBox_Update(ICanvasAnimatedControl sender, CanvasAnimatedUpdateEventArgs args)
@@ -160,6 +194,11 @@ namespace RysiuRysuj
         {
             args.DrawingSession.Transform = Transform;
 
+            foreach (var obstacle in plane.Obstacles)
+            {
+                obstacle.Draw(args.DrawingSession);
+            }
+
             if (plane.PathGeometry != null)
             {
                 args.DrawingSession.DrawGeometry(plane.PathGeometry, Colors.Blue, 3);
@@ -172,6 +211,12 @@ namespace RysiuRysuj
                 args.DrawingSession.DrawGeometry(userGeometry, Colors.Black, 2);
             }
 
+            args.DrawingSession.Transform = Transform;
+
+            foreach (var p in collisionPoints)
+            {
+                args.DrawingSession.FillCircle(p, 5, Colors.Red);
+            }
         }
 
         private void ViewBox_SizeChanged(object sender, SizeChangedEventArgs e)

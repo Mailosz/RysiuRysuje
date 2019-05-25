@@ -53,7 +53,7 @@ namespace RysiuRysuj
         {
             //pos = pos + (new Vector2(0, (float)arg)).Rotate(dir);
             //cpb.AddLine(pos);
-
+            
             dir += (float)(arg * Math.PI / 180);
         }
 

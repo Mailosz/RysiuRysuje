@@ -1,10 +1,12 @@
 ﻿using Microsoft.Graphics.Canvas.Geometry;
+using RysiuRysuj.Map;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.Foundation;
 
 namespace RysiuRysuj
 {
@@ -15,7 +17,8 @@ namespace RysiuRysuj
         public Vector2 StartPoint;
 
         public Actor MainActor;
-
+        public Rect MapBounds = new Rect(-1000, -1000, 2000, 2000);
+        public List<Obstacle> Obstacles = new List<Obstacle>();
 
         public CanvasGeometry PathGeometry;
 

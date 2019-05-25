@@ -16,6 +16,9 @@
         </Grid.RowDefinitions>
         <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" PointerPressed="ViewBox_PointerPressed" PointerMoved="ViewBox_PointerMoved" PointerCaptureLost="ViewBox_PointerCaptureLost"/>
         <Grid Grid.Row="1">
+            <Grid.Background>
+                <AcrylicBrush TintColor="#CC7F7F7F" FallbackColor="#FFF0F0F0"/>
+            </Grid.Background>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -26,8 +29,8 @@
                         <TextBlock Text="{x:Bind}"/>
                     </DataTemplate>
                 </ListView.ItemTemplate>
-                </ListView>
-                <TextBox x:Name="inputBox" Grid.Row="1" AcceptsReturn="True" PlaceholderText="Wpisz tu coś..." PreviewKeyDown="InputBox_KeyDown" BorderThickness="0"/>
+            </ListView>
+            <TextBox x:Name="inputBox" Grid.Row="1" AcceptsReturn="True" PlaceholderText="Wpisz tu coś..." PreviewKeyDown="InputBox_KeyDown" BorderThickness="0"/>
         </Grid>
     </Grid>
 </Page>
