@@ -108,22 +108,4 @@ namespace RysiuRysuj.Map
         }
     }
 
-    public class Finish : Obstacle
-    {
-        CanvasGeometry geometry;
-        public Finish(List<Vector2> points)
-        {
-            Points = points;
-        }
-
-        public override void CreateResources(ICanvasResourceCreator device)
-        {
-            geometry = CanvasGeometry.CreatePolygon(device, Points.ToArray());
-        }
-        public override void Draw(CanvasDrawingSession ds)
-        {
-            if (geometry != null)
-                ds.FillGeometry(geometry, Colors.LimeGreen);
-        }
-    }
 }

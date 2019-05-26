@@ -1,4 +1,5 @@
-﻿using Microsoft.Graphics.Canvas.Geometry;
+﻿using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Geometry;
 using RysiuRysuj.Map;
 using System;
 using System.Collections.Generic;
@@ -10,17 +11,28 @@ using Windows.Foundation;
 
 namespace RysiuRysuj
 {
-    class Plane
+    class Level
     {
         public List<UserCommand> Commands = new List<UserCommand>();
         public float StartDir = 0;
         public Vector2 StartPoint;
+
+        public Finish Finish;
 
         public Actor MainActor;
         public Rect MapBounds = new Rect(-1000, -1000, 2000, 2000);
         public List<Obstacle> Obstacles = new List<Obstacle>();
 
         public CanvasGeometry PathGeometry;
+
+        public void CreateResources(ICanvasResourceCreator rc)
+        {
+
+            foreach (var obstacle in Obstacles)
+            {
+                obstacle.CreateResources(rc);
+            }
+        }
 
     }
 
@@ -30,10 +42,10 @@ namespace RysiuRysuj
         public float Direction = (float)Math.PI/2;
 
         float Speed;
-        public CanvasGeometry PathGeometry;
         public float PathLength;
         public float PointOnPath;
         public float EndDir = (float)Math.PI / 2;
+        public bool Go = true;
 
         public Matrix3x2 Transform = Matrix3x2.Identity;
 
@@ -43,18 +55,30 @@ namespace RysiuRysuj
             Position = pos;
         }
 
-        public void Move()
+        public void UpdateTransform()
         {
-            if (PointOnPath < PathLength && PathGeometry != null)
+            Transform = Matrix3x2.CreateTranslation(Position) * Matrix3x2.CreateRotation(Direction, Position);
+        }
+
+        public void Move(Level level)
+        {
+            if (PointOnPath < PathLength && level.PathGeometry != null)
             {
-                Speed = (float)Math.Min(Speed + 0.1, (PathLength - PointOnPath) / 15 + 0.1);
+                if (Go)
+                {
+                    Speed = (float)Math.Min(Speed + 0.1, (PathLength - PointOnPath) / 15 + 0.1);
+                }
+                else
+                {
+                    Speed = (float)Math.Max(Speed - 0.1 - Speed / 15, 0);
+                }
                 //move
                 PointOnPath = Math.Min(PointOnPath + Speed, PathLength);
 
                 //set variables
-                Position = PathGeometry.ComputePointOnPath(PointOnPath, out Vector2 tangent);
+                Position = level.PathGeometry.ComputePointOnPath(PointOnPath, out Vector2 tangent);
                 Direction = (float)(Math.Atan2(tangent.Y, tangent.X) - Math.PI / 2);
-                Transform = Matrix3x2.CreateTranslation(Position) * Matrix3x2.CreateRotation(Direction, Position);
+                UpdateTransform();
             }
             else
             {

@@ -39,9 +39,8 @@ namespace RysiuRysuj
         bool pressed = false;
         List<Vector2> collisionPoints = new List<Vector2>();
 
-        Plane plane = new Plane();
-        Random random;
-        int level = 1;
+        Level plane = new Level();
+        int levelCounter = 1;
         int executedCommandsCount = 0;
 
         Vector2 lastPoint;
@@ -49,11 +48,8 @@ namespace RysiuRysuj
         {
             this.InitializeComponent();
 
-            plane.MainActor = new Actor(new Vector2(400, 0));
-            plane.StartPoint = new Vector2(400, 0);
-            random = new Random();
 
-            GenerateLevel();
+            plane = GenerateLevel();
             UpdateGUI();
         }
 
@@ -99,18 +95,83 @@ namespace RysiuRysuj
 
                 if (with is Wall)
                 {
-                    ResetPlayerPosition();
-                }
-                else if (with is Finish)
-                {
-                    level++;
-
-                    GenerateLevel();
-                    ResetPlayerPosition();
+                    CollisionWithWall();
                 }
             };
             geometry.SendPathTo(cc);
             collisionPoints = cp;
+        }
+
+        private void CollisionWithWall()
+        {
+            var t = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+                try
+                {
+                    LostDialog lfd = new LostDialog();
+
+                    lfd.PrimaryButtonClick += (s, e) => { RetryLevel(); };
+                    lfd.SecondaryButtonClick += (s, e) => { GimmieNewLevel(); };
+
+                    await lfd.ShowAsync();
+                }
+                catch
+                {
+
+                }
+            });
+
+        }
+
+        private void LevelFinished()
+        {
+
+            var t = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+                try
+                {
+                    LevelFinishedDialog lfd = new LevelFinishedDialog();
+
+                    lfd.PrimaryButtonClick += (s, e) => { RetryLevel(); };
+                    lfd.SecondaryButtonClick += (s, e) => { levelCounter++; GimmieNewLevel(); };
+
+                    await lfd.ShowAsync();
+                }
+                catch
+                {
+
+                }
+            });
+
+        }
+
+        private void RetryLevel()
+        {
+            UpdateGUI();
+            plane.PathGeometry = null;
+
+            plane.MainActor.PointOnPath = 0f;
+            plane.MainActor.Position = plane.StartPoint;
+            plane.MainActor.Direction = plane.StartDir;
+            plane.MainActor.Go = true;
+            plane.MainActor.UpdateTransform();
+
+            plane.Commands.Clear();
+            historyList.Items.Clear();
+
+            collisionPoints = new List<Vector2>();
+        }
+
+        private void GimmieNewLevel()
+        {
+            collisionPoints = new List<Vector2>();
+            Level nl = GenerateLevel();
+
+            nl.CreateResources(viewBox);
+            scroll = Vector2.Zero; //zeroing scroll
+
+            plane = nl;
+            UpdateGUI();
         }
 
         private void PathChanged()
@@ -126,7 +187,6 @@ namespace RysiuRysuj
             }
             cpb.EndFigure(CanvasFigureLoop.Open);
             plane.PathGeometry = CanvasGeometry.CreatePath(cpb);
-            plane.MainActor.PathGeometry = plane.PathGeometry;
             plane.MainActor.PathLength = plane.PathGeometry.ComputePathLength();
             plane.MainActor.EndDir = dir;
 
@@ -196,10 +256,7 @@ namespace RysiuRysuj
         {
             userGeometry = CanvasGeometry.CreatePolygon(sender, new[] { new Vector2(-10,-10), new Vector2(10,-10), new Vector2(0, 15), });
 
-            foreach (var obstacle in plane.Obstacles)
-            {
-                obstacle.CreateResources(sender);
-            }
+            plane?.CreateResources(sender);
         }
 
         private void ViewBox_Update(ICanvasAnimatedControl sender, CanvasAnimatedUpdateEventArgs args)
@@ -208,7 +265,17 @@ namespace RysiuRysuj
 
             if (plane.MainActor != null)
             {
-                plane.MainActor.Move();
+                plane.MainActor.Move(plane);
+            }
+
+            if (plane.Finish != null)
+            {
+                plane.Finish.Update(plane);
+                if (plane.MainActor.Go && Vector2.Distance(plane.MainActor.Position, plane.Finish.Center) <= plane.Finish.Radius)
+                {
+                    plane.MainActor.Go = false;
+                    LevelFinished();
+                }
             }
         }
 
@@ -234,6 +301,11 @@ namespace RysiuRysuj
             }
 
             args.DrawingSession.Transform = Transform;
+
+            if (plane.Finish != null)  //drawing finish if it exists
+            {
+                plane.Finish.Draw(args.DrawingSession);
+            }
 
             foreach (var p in collisionPoints)
             {
@@ -275,32 +347,31 @@ namespace RysiuRysuj
             pressed = false;
         }
 
-        private void GenerateLevel()
+        private Level GenerateLevel()
         {
-            plane.Obstacles.Clear();
+            Random random = new Random();
+            Level nl = new Level();
+
+            nl.StartPoint = new Vector2(400, 0);
+            nl.MainActor = new Actor(nl.StartPoint);
+            nl.MainActor.Direction = nl.StartDir;
+
+            nl.Obstacles.Clear();
 
             // Generate finish
-            var points = new List<Vector2>();
-            var count = 10;
-            var radius = 15;
-            var angleStep = Math.PI * 2 / count;
             var finishPosition = new Vector2(-400, 0);
 
-            for (int i = 0; i < 10; i++)
-            {
-                points.Add(new Vector2((float)Math.Sin(angleStep * i) * radius, (float)Math.Cos(angleStep * i) * radius) + finishPosition);
-            }
 
-            plane.Obstacles.Add(new Finish(points));
+            nl.Finish = new Finish(finishPosition, 25);
 
             // Generate random polygons
-            for (int i = 0; i < level * 20; i++)
+            for (int i = 0; i < 10 +levelCounter * 5; i++)
             {
                 var position = Vector2.Zero;
                 while (true)
                 {
                     position = new Vector2(random.Next(-500, 500), random.Next(-300, 300));
-                    if (Vector2.Distance(position, finishPosition) < 60 || Vector2.Distance(position, plane.StartPoint) < 60) continue;
+                    if (Vector2.Distance(position, finishPosition) < 60 || Vector2.Distance(position, nl.StartPoint) < 60) continue;
                     break;
                 }
 
@@ -309,25 +380,22 @@ namespace RysiuRysuj
                 var rightTop = new Vector2(random.Next(0, 50), random.Next(0, 50)) + position;
                 var leftTop = new Vector2(random.Next(-50, 0), random.Next(0, 50)) + position;
 
-                plane.Obstacles.Add(new Wall(new List<Vector2>() { leftBottom, rightBottom, rightTop, leftTop }));
+                nl.Obstacles.Add(new Wall(new List<Vector2>() { leftBottom, rightBottom, rightTop, leftTop }));
             }
 
             // Generate walls
-            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(-550, -300), new Vector2(-530, -300), new Vector2(-530, 300), new Vector2(-550, 300) }));
-            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2( 530, -300), new Vector2( 530, 300), new Vector2( 550, 300) }));
-            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2(-550, -300), new Vector2(-550,-280), new Vector2( 550, -280) }));
-            plane.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550,  300), new Vector2(-550,  300), new Vector2(-550, 280), new Vector2( 550,  280) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(-550, -300), new Vector2(-530, -300), new Vector2(-530, 300), new Vector2(-550, 300) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2( 530, -300), new Vector2( 530, 300), new Vector2( 550, 300) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2(-550, -300), new Vector2(-550,-280), new Vector2( 550, -280) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550,  300), new Vector2(-550,  300), new Vector2(-550, 280), new Vector2( 550,  280) }));
+
+            return nl;
         }
 
         private void UpdateGUI()
         {
             ExecutedCommandsLabel.Text = "Wykonanych komend: " + executedCommandsCount;
-            LevelLabel.Text = "Poziom: " + level;
-        }
-
-        private void ResetPlayerPosition()
-        {
-            // TODO: pozycja gracz powinna zostać resetowana do punktu (0, 400)
+            LevelLabel.Text = "Poziom: " + levelCounter;
         }
     }
 }
