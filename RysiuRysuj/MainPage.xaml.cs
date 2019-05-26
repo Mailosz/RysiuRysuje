@@ -154,7 +154,7 @@ namespace RysiuRysuj
 
             plane.MainActor.PointOnPath = 0f;
             plane.MainActor.Position = plane.StartPoint;
-            plane.MainActor.Direction = plane.StartDir;
+            plane.MainActor.CurrentDirection = plane.StartDir;
             plane.MainActor.Go = true;
             plane.MainActor.UpdateTransform();
 
@@ -166,6 +166,7 @@ namespace RysiuRysuj
 
         private void GimmieNewLevel()
         {
+            historyList.Items.Clear();
             collisionPoints = new List<Vector2>();
             Level nl = GenerateLevel();
 
@@ -190,7 +191,7 @@ namespace RysiuRysuj
             cpb.EndFigure(CanvasFigureLoop.Open);
             plane.PathGeometry = CanvasGeometry.CreatePath(cpb);
             plane.MainActor.PathLength = plane.PathGeometry.ComputePathLength();
-            plane.MainActor.EndDir = dir;
+            plane.MainActor.Direction = dir;
 
             CheckCollisions(plane.PathGeometry);
         }
@@ -355,16 +356,21 @@ namespace RysiuRysuj
             Level nl = new Level();
 
             nl.StartPoint = new Vector2(400, 0);
-            nl.MainActor = new Actor(nl.StartPoint);
-            nl.MainActor.Direction = nl.StartDir;
+
 
             nl.Obstacles.Clear();
 
             // Generate finish
             var finishPosition = new Vector2(-400, 0);
 
+            nl.StartDir = (float)Math.Atan2((nl.StartPoint - finishPosition).X, (nl.StartPoint - finishPosition).Y);
 
             nl.Finish = new Finish(finishPosition, 25);
+
+            nl.MainActor = new Actor(nl.StartPoint);
+            nl.MainActor.CurrentDirection = nl.StartDir;
+            nl.MainActor.Direction = nl.StartDir;
+            nl.MainActor.UpdateTransform();
 
             // Generate random polygons
             for (int i = 0; i < 10 +levelCounter * 5; i++)

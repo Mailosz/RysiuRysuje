@@ -39,12 +39,12 @@ namespace RysiuRysuj
     class Actor
     {
         public Vector2 Position;
-        public float Direction = (float)Math.PI/2;
+        public float CurrentDirection = (float)Math.PI/2;
 
         float Speed;
         public float PathLength;
         public float PointOnPath;
-        public float EndDir = (float)Math.PI / 2;
+        public float Direction = (float)Math.PI / 2;
         public bool Go = true;
 
         public Matrix3x2 Transform = Matrix3x2.Identity;
@@ -57,7 +57,7 @@ namespace RysiuRysuj
 
         public void UpdateTransform()
         {
-            Transform = Matrix3x2.CreateTranslation(Position) * Matrix3x2.CreateRotation(Direction, Position);
+            Transform = Matrix3x2.CreateTranslation(Position) * Matrix3x2.CreateRotation(CurrentDirection, Position);
         }
 
         public void Move(Level level)
@@ -77,16 +77,26 @@ namespace RysiuRysuj
 
                 //set variables
                 Position = level.PathGeometry.ComputePointOnPath(PointOnPath, out Vector2 tangent);
-                Direction = (float)(Math.Atan2(tangent.Y, tangent.X) - Math.PI / 2);
+                CurrentDirection = (float)(Math.Atan2(tangent.Y, tangent.X) - Math.PI / 2);
                 UpdateTransform();
             }
             else
             {
-                if (Math.Abs(Direction - EndDir) > float.Epsilon)
+                var diff = ((CurrentDirection - Direction) % (Math.PI*2));
+                if (diff > Math.PI)
                 {
-                    Direction = Math.Max(Math.Min(Direction + 0.05f, EndDir), Direction - 0.05f);
-
-                    Transform = Matrix3x2.CreateTranslation(Position) * Matrix3x2.CreateRotation(Direction, Position);
+                    CurrentDirection += 0.05f;
+                    UpdateTransform();
+                }
+                else if (diff < -Math.PI)
+                {
+                    CurrentDirection -= 0.05f;
+                    UpdateTransform();
+                }
+                else
+                {
+                    CurrentDirection = Math.Max(Math.Min(CurrentDirection + 0.05f, Direction), CurrentDirection - 0.05f);
+                    UpdateTransform();
                 }
             }
         }
