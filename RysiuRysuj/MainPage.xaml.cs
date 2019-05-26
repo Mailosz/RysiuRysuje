@@ -294,7 +294,7 @@ namespace RysiuRysuj
             plane.Obstacles.Add(new Finish(points));
 
             // Generate random polygons
-            for (int i = 0; i < level * 40; i++)
+            for (int i = 0; i < level * 20; i++)
             {
                 var position = Vector2.Zero;
                 while (true)
