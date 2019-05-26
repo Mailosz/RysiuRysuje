@@ -43,6 +43,7 @@ namespace RysiuRysuj.Map
                 if (obstacle.TryGetCollisionPoint(last, endPoint, out float coldis, out Vector2 point, out Vector2 tangent))
                 {
                     OnCollision?.Invoke(obstacle, point, tangent / tangent.Length());
+                    break;
                 }
             }
 

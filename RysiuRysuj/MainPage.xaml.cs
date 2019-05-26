@@ -96,6 +96,18 @@ namespace RysiuRysuj
             cc.OnCollision += (with, p, t) =>
             {
                 cp.Add(p);
+
+                if (with is Wall)
+                {
+                    ResetPlayerPosition();
+                }
+                else if (with is Finish)
+                {
+                    level++;
+
+                    GenerateLevel();
+                    ResetPlayerPosition();
+                }
             };
             geometry.SendPathTo(cc);
             collisionPoints = cp;
@@ -311,6 +323,11 @@ namespace RysiuRysuj
         {
             ExecutedCommandsLabel.Text = "Wykonanych komend: " + executedCommandsCount;
             LevelLabel.Text = "Poziom: " + level;
+        }
+
+        private void ResetPlayerPosition()
+        {
+            // TODO: pozycja gracz powinna zostać resetowana do punktu (0, 400)
         }
     }
 }
