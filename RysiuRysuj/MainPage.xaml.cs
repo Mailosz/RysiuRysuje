@@ -36,6 +36,8 @@ namespace RysiuRysuj
         Vector2 centerPoint = new Vector2();
         Matrix3x2 Transform;
         float zoom = 1;
+        float minzoom = 0.5f;
+        float maxzoom = 2f;
         bool pressed = false;
         List<Vector2> collisionPoints = new List<Vector2>();
 
@@ -261,7 +263,7 @@ namespace RysiuRysuj
 
         private void ViewBox_Update(ICanvasAnimatedControl sender, CanvasAnimatedUpdateEventArgs args)
         {
-            Transform = Matrix3x2.CreateRotation((float)Math.PI, centerPoint) * Matrix3x2.CreateTranslation(scroll - centerPoint);
+            Transform = Matrix3x2.CreateRotation((float)Math.PI, centerPoint) * Matrix3x2.CreateTranslation(scroll - centerPoint) * Matrix3x2.CreateScale(zoom);
 
             if (plane.MainActor != null)
             {
@@ -396,6 +398,23 @@ namespace RysiuRysuj
         {
             ExecutedCommandsLabel.Text = "Wykonanych komend: " + executedCommandsCount;
             LevelLabel.Text = "Poziom: " + levelCounter;
+        }
+
+        private void ViewBox_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            scroll += e.Delta.Translation.ToVector2() / zoom;
+
+            zoom = (float)Math.Min(Math.Max(zoom * e.Delta.Scale, minzoom), maxzoom);
+        }
+
+        private void ZoomInButton_Click(object sender, RoutedEventArgs e)
+        {
+            zoom = (float)Math.Min(zoom * 1.1, maxzoom);
+        }
+
+        private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
+        {
+            zoom = (float)Math.Max(zoom * 0.9, minzoom);
         }
     }
 }

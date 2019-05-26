@@ -14,7 +14,7 @@
             <RowDefinition Height="2*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" PointerPressed="ViewBox_PointerPressed" PointerMoved="ViewBox_PointerMoved" PointerCaptureLost="ViewBox_PointerCaptureLost"/>
+        <canvas:CanvasAnimatedControl x:Name="viewBox" CreateResources="ViewBox_CreateResources" Update="ViewBox_Update" SizeChanged="ViewBox_SizeChanged" Draw="ViewBox_Draw" ManipulationMode="TranslateX,TranslateY,Scale" ManipulationDelta="ViewBox_ManipulationDelta"/>
         <Grid Grid.Row="1">
             <Grid.Background>
                 <AcrylicBrush TintColor="#CC7F7F7F" FallbackColor="#FFF0F0F0"/>
@@ -35,5 +35,14 @@
         <Border BorderBrush="Black" HorizontalAlignment="Left" Height="59" VerticalAlignment="Top" Width="190" FocusVisualPrimaryBrush="Black" Background="{ThemeResource AppBarToggleButtonCheckedForegroundThemeBrush}"/>
         <TextBlock x:Name="ExecutedCommandsLabel" HorizontalAlignment="Left" Margin="10,10,0,0" Text="TextBlock" TextWrapping="Wrap" VerticalAlignment="Top"/>
         <TextBlock x:Name="LevelLabel" HorizontalAlignment="Left" Margin="10,34,0,0" Text="TextBlock" TextWrapping="Wrap" VerticalAlignment="Top"/>
+
+        <Grid RowSpacing="8" Margin="8" HorizontalAlignment="Right">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Button Width="32" Height="32" Click="ZoomInButton_Click">+</Button>
+            <Button Width="32" Height="32" Grid.Row="1" Click="ZoomOutButton_Click">-</Button>
+        </Grid>
     </Grid>
 </Page>
