@@ -10,7 +10,7 @@ using Windows.UI;
 
 namespace RysiuRysuj.Map
 {
-    class Finish
+    public class Finish
     {
         public float Radius;
         public float RotationSpeed = 0.01f;

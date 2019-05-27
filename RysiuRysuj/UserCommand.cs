@@ -16,7 +16,7 @@ namespace RysiuRysuj
         {
         }
 
-        virtual public void AppendPath(CanvasPathBuilder cpb, ref float dir, ref Vector2 pos) { }
+        virtual public void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos) { }
 
 
         public override string ToString() => command;
@@ -31,7 +31,7 @@ namespace RysiuRysuj
             this.arg = arg;
         }
 
-        public override void AppendPath(CanvasPathBuilder cpb, ref float dir, ref Vector2 pos)
+        public override void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos)
         {
             pos = pos + (new Vector2(0, (float)arg)).Rotate(dir);
             cpb.AddLine(pos);
@@ -40,16 +40,52 @@ namespace RysiuRysuj
         public override string ToString() => "Move forward " + arg.ToString("0.##");
     }
 
+    public class MoveHorizontal : UserCommand
+    {
+        double arg;
+
+        public MoveHorizontal(double arg)
+        {
+            this.arg = arg;
+        }
+
+        public override void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos)
+        {
+            pos = pos + new Vector2((float)arg, 0);
+            cpb.AddLine(pos);
+        }
+
+        public override string ToString() => "Move horizontal " + arg.ToString("0.##");
+    }
+
+    public class MoveVertical : UserCommand
+    {
+        double arg;
+
+        public MoveVertical(double arg)
+        {
+            this.arg = arg;
+        }
+
+        public override void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos)
+        {
+            pos = pos + new Vector2(0, (float)arg);
+            cpb.AddLine(pos);
+        }
+
+        public override string ToString() => "Move vertical " + arg.ToString("0.##");
+    }
+
     public class RotateCommand : UserCommand
     {
         double arg;
 
         public RotateCommand(double arg)
         {
-            this.arg = arg;
+            this.arg = -arg;
         }
 
-        public override void AppendPath(CanvasPathBuilder cpb, ref float dir, ref Vector2 pos)
+        public override void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos)
         {
             //pos = pos + (new Vector2(0, (float)arg)).Rotate(dir);
             //cpb.AddLine(pos);
@@ -57,7 +93,33 @@ namespace RysiuRysuj
             dir += (float)(arg * Math.PI / 180);
         }
 
-        public override string ToString() => "Rotate by " + arg.ToString("0.##") + " deg " + ((arg > 0) ? "right" : "left");
+        public override string ToString() => "Rotate by " + Math.Abs(arg).ToString("0.##") + " deg " + ((arg > 0) ? "left" : "right");
+    }
+
+    public class RepeatCommand : UserCommand
+    {
+        int CommandCount;
+        int RepeatCount;
+
+        public RepeatCommand(int commandCount, int repeatCount)
+        {
+            CommandCount = commandCount;
+            RepeatCount = repeatCount;
+        }
+
+        public override void AppendPath(CanvasPathBuilder cpb, Level level, ref float dir, ref Vector2 pos)
+        {
+            int id = level.Commands.IndexOf(this);
+            for (int i = 0; i < RepeatCount; i++)
+            {
+                for (int com = Math.Min(CommandCount, id - 1); com > 0; com--)
+                { 
+                    level.Commands[id - 1 - com].AppendPath(cpb, level, ref dir, ref pos);
+                }
+            }
+        }
+
+        public override string ToString() => "Repeat " + CommandCount.ToString() + " last commands " + RepeatCount.ToString() + " times";
     }
 }
 

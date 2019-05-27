@@ -21,6 +21,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Microsoft.Graphics.Canvas.Text;
+using System.Drawing;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -60,7 +61,7 @@ namespace RysiuRysuj
         {
             if (e.Key == VirtualKey.Enter || e.Key == VirtualKey.Execute)
             {
-                if (ParseCommand(inputBox.Text, out UserCommand command))
+                if (ParseCommand(inputBox.Text, out UserCommand command, ref executedCommandsCount))
                 {
                     inputBox.Text = "";
 
@@ -186,7 +187,7 @@ namespace RysiuRysuj
             cpb.BeginFigure(pos);
             foreach (var command in plane.Commands)
             {
-                command.AppendPath(cpb, ref dir, ref pos);
+                command.AppendPath(cpb, plane, ref dir, ref pos);
             }
             cpb.EndFigure(CanvasFigureLoop.Open);
             plane.PathGeometry = CanvasGeometry.CreatePath(cpb);
@@ -196,34 +197,60 @@ namespace RysiuRysuj
             CheckCollisions(plane.PathGeometry);
         }
 
-        public bool ParseCommand(string text, out UserCommand command)
+        public bool ParseCommand(string text, out UserCommand command, ref int countCommand)
         {
             text = text.Trim();
             
             int pos = 0;
             string token;
+            command = null;
                          
             if (TryGetToken(text, ref pos, (c) => !char.IsLetter(c), out token))
             {
                 double arg1 = 0;
                 switch (token.ToUpperInvariant())
                 {
+                    case "MH":
+                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                        {
+                            command = new MoveHorizontal(arg1);
+                            countCommand++;
+                            return true;
+                        }
+                        else return false;
+                    case "MV":
+                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                        {
+                            command = new MoveVertical(arg1);
+                            countCommand++;
+                            return true;
+                        }
+                        else return false;
                     case "MF":
                         if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
                         {
-
+                            command = new MoveForward(arg1);
+                            countCommand++;
+                            return true;
                         }
-                        command = new MoveForward(arg1);
-                        executedCommandsCount++;
-                        return true;
+                        else return false;
                     case "RT":
                         if (TryGetToken(text, ref pos, (c) => c != '-' && !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
                         {
-
+                            command = new RotateCommand(arg1);
+                            countCommand++;
+                            return true;
                         }
-                        command = new RotateCommand(arg1);
-                        executedCommandsCount++;
-                        return true;
+                        else return false;
+                    case "REPEAT":
+                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int comnum)
+                            && TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int ile))
+                        {
+                            command = new RepeatCommand(comnum, ile);
+                            countCommand++;
+                            return true;
+                        }
+                        else return false;
                 }
             }
 
@@ -240,7 +267,7 @@ namespace RysiuRysuj
                     if (i - pos > 0)
                     {
                         token = text.Substring(pos, i - pos);
-                        pos += i;
+                        pos = i;
                         return true;
                     }
                 }
@@ -264,7 +291,7 @@ namespace RysiuRysuj
 
         private void ViewBox_Update(ICanvasAnimatedControl sender, CanvasAnimatedUpdateEventArgs args)
         {
-            Transform = Matrix3x2.CreateRotation((float)Math.PI, centerPoint) * Matrix3x2.CreateTranslation(scroll - centerPoint) * Matrix3x2.CreateScale(zoom);
+            Transform = Matrix3x2.CreateScale(1,-1, centerPoint) * Matrix3x2.CreateTranslation(scroll + centerPoint * new Vector2(1,-1)) * Matrix3x2.CreateScale(zoom);
 
             if (plane.MainActor != null)
             {
@@ -284,6 +311,7 @@ namespace RysiuRysuj
 
         private void ViewBox_Draw(ICanvasAnimatedControl sender, CanvasAnimatedDrawEventArgs args)
         {
+            if (plane == null) return;
             args.DrawingSession.Transform = Transform;
 
             foreach (var obstacle in plane.Obstacles)
@@ -291,9 +319,11 @@ namespace RysiuRysuj
                 obstacle.Draw(args.DrawingSession);
             }
 
+            args.DrawingSession.FillCircle(plane.StartPoint, 6, Colors.CornflowerBlue);
+
             if (plane.PathGeometry != null)
             {
-                args.DrawingSession.DrawGeometry(plane.PathGeometry, Colors.Blue, 3);
+                args.DrawingSession.DrawGeometry(plane.PathGeometry, Colors.CornflowerBlue, 4);
             }
 
             if (plane.MainActor != null)
@@ -355,15 +385,27 @@ namespace RysiuRysuj
             Random random = new Random();
             Level nl = new Level();
 
-            nl.StartPoint = new Vector2(400, 0);
+            Rectangle bounds = new Rectangle(-500, -300, 1000, 600);
+            float margin = 20;
+
+            nl.StartPoint = new Vector2((float)bounds.X + margin + random.Next((int)(bounds.Width - margin * 2)),
+                (float)bounds.Y + margin + random.Next((int)(bounds.Height - margin * 2)));
 
 
             nl.Obstacles.Clear();
 
             // Generate finish
-            var finishPosition = new Vector2(-400, 0);
+            var finishPosition = new Vector2();
 
-            nl.StartDir = (float)Math.Atan2((nl.StartPoint - finishPosition).X, (nl.StartPoint - finishPosition).Y);
+            for (int i = 0; i < 10; i++)
+            {
+                finishPosition = new Vector2((float)bounds.X + margin + random.Next((int)(bounds.Width - margin * 2)),
+                (float)bounds.Y + margin + random.Next((int)(bounds.Height - margin * 2)));
+
+                if (Vector2.Distance(nl.StartPoint, finishPosition) > 500) break;
+            }
+
+            nl.StartDir = (float)Math.Atan2((nl.StartPoint - finishPosition).X, -(nl.StartPoint - finishPosition).Y);
 
             nl.Finish = new Finish(finishPosition, 25);
 
@@ -373,13 +415,13 @@ namespace RysiuRysuj
             nl.MainActor.UpdateTransform();
 
             // Generate random polygons
-            for (int i = 0; i < 10 +levelCounter * 5; i++)
+            for (int i = 0; i < 10 + levelCounter * 5; i++)
             {
                 var position = Vector2.Zero;
                 while (true)
                 {
-                    position = new Vector2(random.Next(-500, 500), random.Next(-300, 300));
-                    if (Vector2.Distance(position, finishPosition) < 60 || Vector2.Distance(position, nl.StartPoint) < 60) continue;
+                    position = new Vector2(random.Next(bounds.Left, bounds.Right), random.Next(bounds.Top, bounds.Bottom));
+                    if (Vector2.Distance(position, finishPosition) < 70 || Vector2.Distance(position, nl.StartPoint) < 70) continue;
                     break;
                 }
 
@@ -391,14 +433,23 @@ namespace RysiuRysuj
                 nl.Obstacles.Add(new Wall(new List<Vector2>() { leftBottom, rightBottom, rightTop, leftTop }));
             }
 
-            // Generate walls
-            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(-550, -300), new Vector2(-530, -300), new Vector2(-530, 300), new Vector2(-550, 300) }));
-            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2( 530, -300), new Vector2( 530, 300), new Vector2( 550, 300) }));
-            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2(-550, -300), new Vector2(-550,-280), new Vector2( 550, -280) }));
-            nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550,  300), new Vector2(-550,  300), new Vector2(-550, 280), new Vector2( 550,  280) }));
+            // Generate outer walls
+            float wallsize = 20;
+            nl.Obstacles.Add(new Wall(new List<Vector2> { new Vector2(bounds.X, bounds.Y - wallsize), new Vector2(bounds.X, bounds.Bottom + wallsize), new Vector2(bounds.X - wallsize, bounds.Bottom + wallsize), new Vector2(bounds.X - wallsize, bounds.Y - wallsize) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2> { new Vector2(bounds.X + bounds.Width, bounds.Y - wallsize), new Vector2(bounds.X + bounds.Width, bounds.Bottom + wallsize), new Vector2(bounds.Right + wallsize, bounds.Bottom + wallsize), new Vector2(bounds.Right + wallsize, bounds.Y - wallsize) }));
+
+            nl.Obstacles.Add(new Wall(new List<Vector2> { new Vector2(bounds.X - wallsize, bounds.Y), new Vector2(bounds.Right + wallsize, bounds.Y), new Vector2(bounds.Right + wallsize, bounds.Y - wallsize), new Vector2(bounds.X - wallsize, bounds.Y - wallsize) }));
+            nl.Obstacles.Add(new Wall(new List<Vector2> { new Vector2(bounds.X - wallsize, bounds.Bottom), new Vector2(bounds.Right + wallsize, bounds.Bottom), new Vector2(bounds.Right + wallsize, bounds.Bottom + wallsize), new Vector2(bounds.X - wallsize, bounds.Bottom + wallsize) }));
+
+            //nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2(-550, -300), new Vector2(-530, -300), new Vector2(-530, 300), new Vector2(-550, 300) }));
+            //nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2( 530, -300), new Vector2( 530, 300), new Vector2( 550, 300) }));
+            //nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550, -300), new Vector2(-550, -300), new Vector2(-550,-280), new Vector2( 550, -280) }));
+            //nl.Obstacles.Add(new Wall(new List<Vector2>() { new Vector2( 550,  300), new Vector2(-550,  300), new Vector2(-550, 280), new Vector2( 550,  280) }));
 
             return nl;
         }
+
+
 
         private void UpdateGUI()
         {

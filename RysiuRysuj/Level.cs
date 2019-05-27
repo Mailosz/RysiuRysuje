@@ -11,7 +11,7 @@ using Windows.Foundation;
 
 namespace RysiuRysuj
 {
-    class Level
+    public class Level
     {
         public List<UserCommand> Commands = new List<UserCommand>();
         public float StartDir = 0;
@@ -36,7 +36,7 @@ namespace RysiuRysuj
 
     }
 
-    class Actor
+    public class Actor
     {
         public Vector2 Position;
         public float CurrentDirection = (float)Math.PI/2;
