@@ -40,6 +40,7 @@ namespace RysiuRysuj
         float minzoom = 0.5f;
         float maxzoom = 2f;
         bool pressed = false;
+        bool cheatline = true;
         List<Vector2> collisionPoints = new List<Vector2>();
 
         Level plane = new Level();
@@ -156,6 +157,7 @@ namespace RysiuRysuj
             plane.MainActor.PointOnPath = 0f;
             plane.MainActor.Position = plane.StartPoint;
             plane.MainActor.CurrentDirection = plane.StartDir;
+            plane.MainActor.Direction = plane.StartDir;
             plane.MainActor.Go = true;
             plane.MainActor.UpdateTransform();
 
@@ -197,90 +199,90 @@ namespace RysiuRysuj
             CheckCollisions(plane.PathGeometry);
         }
 
-        public bool ParseCommand(string text, out UserCommand command, ref int countCommand)
-        {
-            text = text.Trim();
+public bool ParseCommand(string text, out UserCommand command, ref int countCommand)
+{
+    text = text.Trim();
             
-            int pos = 0;
-            string token;
-            command = null;
+    int pos = 0;
+    string token;
+    command = null;
                          
-            if (TryGetToken(text, ref pos, (c) => !char.IsLetter(c), out token))
-            {
-                double arg1 = 0;
-                switch (token.ToUpperInvariant())
-                {
-                    case "MH":
-                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
-                        {
-                            command = new MoveHorizontal(arg1);
-                            countCommand++;
-                            return true;
-                        }
-                        else return false;
-                    case "MV":
-                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
-                        {
-                            command = new MoveVertical(arg1);
-                            countCommand++;
-                            return true;
-                        }
-                        else return false;
-                    case "MF":
-                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
-                        {
-                            command = new MoveForward(arg1);
-                            countCommand++;
-                            return true;
-                        }
-                        else return false;
-                    case "RT":
-                        if (TryGetToken(text, ref pos, (c) => c != '-' && !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
-                        {
-                            command = new RotateCommand(arg1);
-                            countCommand++;
-                            return true;
-                        }
-                        else return false;
-                    case "REPEAT":
-                        if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int comnum)
-                            && TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int ile))
-                        {
-                            command = new RepeatCommand(comnum, ile);
-                            countCommand++;
-                            return true;
-                        }
-                        else return false;
-                }
-            }
-
-            command = null;
-            return false; 
-        }
-
-        bool TryGetToken(string text, ref int pos, Func<char, bool> until, out string token)
+    if (TryGetToken(text, ref pos, (c) => !char.IsLetter(c), out token))
+    {
+        double arg1 = 0;
+        switch (token.ToUpperInvariant())
         {
-            for (int i = pos; i < text.Length; i++)
-            {
-                if (until(text[i]))
+            case "MH":
+                if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
                 {
-                    if (i - pos > 0)
-                    {
-                        token = text.Substring(pos, i - pos);
-                        pos = i;
-                        return true;
-                    }
+                    command = new MoveHorizontal(arg1);
+                    countCommand++;
+                    return true;
                 }
-            }
-            if (pos < text.Length)
+                else return false;
+            case "MV":
+                if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                {
+                    command = new MoveVertical(arg1);
+                    countCommand++;
+                    return true;
+                }
+                else return false;
+            case "MF":
+                if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                {
+                    command = new MoveForward(arg1);
+                    countCommand++;
+                    return true;
+                }
+                else return false;
+            case "RT":
+                if (TryGetToken(text, ref pos, (c) => c != '-' && !char.IsDigit(c), out token) && double.TryParse(token, out arg1))
+                {
+                    command = new RotateCommand(arg1);
+                    countCommand++;
+                    return true;
+                }
+                else return false;
+            case "REPEAT":
+                if (TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int comnum)
+                    && TryGetToken(text, ref pos, (c) => !char.IsDigit(c), out token) && int.TryParse(token, out int ile))
+                {
+                    command = new RepeatCommand(comnum, ile);
+                    countCommand++;
+                    return true;
+                }
+                else return false;
+        }
+    }
+
+    command = null;
+    return false; 
+}
+
+bool TryGetToken(string text, ref int pos, Func<char, bool> until, out string token)
+{
+    for (int i = pos; i < text.Length; i++)
+    {
+        if (until(text[i]))
+        {
+            if (i - pos > 0)
             {
-                token = text.Substring(pos);
-                pos = text.Length;
+                token = text.Substring(pos, i - pos);
+                pos = i;
                 return true;
             }
-            token = null;
-            return false;
         }
+    }
+    if (pos < text.Length)
+    {
+        token = text.Substring(pos);
+        pos = text.Length;
+        return true;
+    }
+    token = null;
+    return false;
+}
 
         private void ViewBox_CreateResources(CanvasAnimatedControl sender, CanvasCreateResourcesEventArgs args)
         {
@@ -343,6 +345,11 @@ namespace RysiuRysuj
             foreach (var p in collisionPoints)
             {
                 args.DrawingSession.FillCircle(p, 5, Colors.Red);
+            }
+
+            if (cheatline)
+            {
+                args.DrawingSession.DrawLine(plane.MainActor.Position, plane.MainActor.Position + new Vector2(1000,0) * new Vector2((float)Math.Sin(plane.MainActor.Direction), (float)Math.Cos(plane.MainActor.Direction)), Colors.Lime);
             }
         }
 

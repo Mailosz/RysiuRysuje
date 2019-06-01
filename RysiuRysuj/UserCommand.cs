@@ -112,9 +112,9 @@ namespace RysiuRysuj
             int id = level.Commands.IndexOf(this);
             for (int i = 0; i < RepeatCount; i++)
             {
-                for (int com = Math.Min(CommandCount, id - 1); com > 0; com--)
+                for (int com = Math.Min(CommandCount, id); com > 0; com--)
                 { 
-                    level.Commands[id - 1 - com].AppendPath(cpb, level, ref dir, ref pos);
+                    level.Commands[id - com].AppendPath(cpb, level, ref dir, ref pos);
                 }
             }
         }
